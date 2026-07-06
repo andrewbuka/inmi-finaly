@@ -61,6 +61,8 @@ const setCartCountBasket = (products) => {
 }
 
 const setBasket = (products) => {
+    allProdBasket.innerHTML = ''
+
     products.forEach(prod => {
         const prodImg = DomHelper.createImage([{ prop: 'src', value: prod.src }])
         const imgBox = DomHelper.createImageBox([prodImg])
@@ -495,11 +497,71 @@ if (checkoutSummaryOverlay) {
     })
 }
 
-if (checkoutSummarySubmit) {
-    checkoutSummarySubmit.addEventListener('click', () => {
+const resetCheckoutOrder = () => {
+    forAsyncBasket = []
+    localStorage.removeItem('order')
+    allProdBasket.innerHTML = ''
+    setCartCountBasket(forAsyncBasket)
+    document.querySelector('#customer_firstname').value = ''
+    document.querySelector('#customer_email').value = ''
+    document.querySelector('#customer_telephone').value = ''
+    document.querySelector('#comment').value = ''
+
+    if (shippingAddressInput) {
+        shippingAddressInput.value = ''
+    }
+}
+
+const sendCheckoutOrder = async event => {
+    event.preventDefault()
+
+    if (!validateCheckoutForm() || !window.inmiBasketOrder) {
+        return
+    }
+
+    const data = getCheckoutData()
+    const formData = new FormData()
+
+    formData.append('action', 'inmi_send_order')
+    formData.append('nonce', window.inmiBasketOrder.nonce)
+    formData.append('firstname', data.firstname)
+    formData.append('email', data.email)
+    formData.append('telephone', data.telephone)
+    formData.append('shipping', data.shipping)
+    formData.append('payment', data.payment)
+    formData.append('address', data.address)
+    formData.append('comment', data.comment)
+    formData.append('total', data.total)
+    formData.append('products', JSON.stringify(data.products))
+
+    checkoutSummarySubmit.disabled = true
+    checkoutSummarySubmit.textContent = 'Отправляем...'
+
+    try {
+        const response = await fetch(window.inmiBasketOrder.ajaxUrl, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.data?.message || 'Не удалось отправить заказ. Попробуйте позже.')
+        }
+
         closeCheckoutSummary()
-        alert('Спасибо! Ваш заказ принят в обработку.')
-    })
+        resetCheckoutOrder()
+        alert(result.data?.message || 'Спасибо! Ваш заказ успешно отправлен.')
+    } catch (error) {
+        alert(error.message)
+    } finally {
+        checkoutSummarySubmit.disabled = false
+        checkoutSummarySubmit.textContent = 'Заказать'
+    }
+}
+
+if (checkoutSummaryOverlay) {
+    checkoutSummaryOverlay.addEventListener('submit', sendCheckoutOrder)
 }
 
 document.addEventListener('keydown', event => {
