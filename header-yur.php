@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
 	<meta charset="UTF-8">
-	<title>SugarSite</title>
+	<?php $inmi_seo_meta = function_exists( 'inmi_get_seo_meta' ) ? inmi_get_seo_meta() : array( 'title' => 'INMI' ); ?>
+	<title><?php echo esc_html( $inmi_seo_meta['title'] ); ?></title>
 
     <?php wp_head() ?>
 	<!-- =================== META =================== -->
-	<meta name="keywords" content="">
-	<meta name="description" content="">
+	<?php if ( function_exists( 'inmi_render_seo_meta' ) ) { inmi_render_seo_meta(); } ?>
 	<meta name="format-detection" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<link rel="shortcut icon" href="assets/img/sgr.png">
@@ -52,7 +52,7 @@
 		</div>
 		<div class="header-menu">
 			<div class="container">
-				<a href="<?php echo get_page_link(8); ?>" class="logo"><img class="logo-inmi" src="<?php the_field('logo', 8) ?>" alt="logo"></a>
+				<a href="<?php echo get_page_link(8); ?>" class="logo"><img class="logo-inmi" src="<?php the_field('logo', 8) ?>" alt="INMI — биопрепараты и микробиологические решения"></a>
 				<nav class="nav-menu">
 					<ul class="nav-list">
 						<li>

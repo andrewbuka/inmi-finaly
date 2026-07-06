@@ -209,4 +209,135 @@ function inmi_send_order() {
 }
 
 
-?>
+
+/**
+ * Build SEO metadata for all theme pages from page context and product specificity.
+ */
+function inmi_get_seo_meta() {
+    static $meta = null;
+
+    if ( null !== $meta ) {
+        return $meta;
+    }
+
+    $site_name = function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : 'INMI';
+    if ( ! $site_name || 'SugarSite' === $site_name ) {
+        $site_name = 'INMI';
+    }
+
+    $title = isset( $GLOBALS['inmi_custom_title'] ) ? $GLOBALS['inmi_custom_title'] : '';
+    $description = isset( $GLOBALS['inmi_custom_description'] ) ? $GLOBALS['inmi_custom_description'] : '';
+    $keywords = isset( $GLOBALS['inmi_custom_keywords'] ) ? $GLOBALS['inmi_custom_keywords'] : '';
+
+    $page_title = function_exists( 'get_the_title' ) ? wp_strip_all_tags( get_the_title() ) : '';
+    $template = function_exists( 'get_page_template_slug' ) ? (string) get_page_template_slug() : '';
+    $content = function_exists( 'get_post_field' ) ? wp_strip_all_tags( strip_shortcodes( (string) get_post_field( 'post_content', get_the_ID() ) ) ) : '';
+    $acf_description = '';
+
+    if ( function_exists( 'get_field' ) ) {
+        $acf_description = wp_strip_all_tags( (string) get_field( 'description' ) );
+    }
+
+    $is_product_template = ( false !== strpos( $template, '-yur.php' ) || false !== strpos( $template, '-fiz.php' ) || false !== strpos( $template, '-org.php' ) );
+
+    if ( ! $title ) {
+        if ( function_exists( 'is_front_page' ) && is_front_page() ) {
+            $title = 'INMI — биопрепараты и микробиологические решения для дома, агро и бизнеса';
+        } elseif ( false !== strpos( $template, 'yur-page.php' ) ) {
+            $title = 'Биопрепараты для юридических лиц — каталог B2B | INMI';
+        } elseif ( false !== strpos( $template, 'basket.php' ) ) {
+            $title = 'Оформление заказа биопрепаратов | INMI';
+        } elseif ( false !== strpos( $template, 'payment.php' ) ) {
+            $title = 'Оплата и доставка биопрепаратов | INMI';
+        } elseif ( false !== strpos( $template, 'how-buing.php' ) ) {
+            $title = 'Как купить биопрепараты INMI';
+        } elseif ( false !== strpos( $template, 'requisites.php' ) ) {
+            $title = 'Реквизиты INMI';
+        } elseif ( $is_product_template && $page_title ) {
+            $title = $page_title . ' — биопрепарат: описание, применение и инструкция | INMI';
+        } elseif ( $page_title ) {
+            $title = $page_title . ' | INMI';
+        } else {
+            $title = 'INMI — биопрепараты и микробиологические решения';
+        }
+    }
+
+    if ( ! $description ) {
+        if ( $is_product_template && $page_title ) {
+            $source = $acf_description ? $acf_description : $content;
+            $description = $page_title . ' от INMI: назначение, характеристики, форма выпуска, инструкция по применению и возможность заказать препарат.';
+            if ( $source ) {
+                $description = $page_title . ' от INMI. ' . $source;
+            }
+        } elseif ( false !== strpos( $template, 'yur-page.php' ) ) {
+            $description = 'Каталог биопрепаратов INMI для юридических лиц: биоконсерванты, очистка воды, кормовые добавки, микробные удобрения и решения для рыбоводства.';
+        } elseif ( function_exists( 'is_front_page' ) && is_front_page() ) {
+            $description = 'INMI разрабатывает и предлагает биопрепараты для септиков, очистки воды, растениеводства, силосования, кормов и промышленных задач.';
+        } elseif ( false !== strpos( $template, 'basket.php' ) ) {
+            $description = 'Проверьте выбранные биопрепараты INMI, укажите контактные данные и оформите заказ через корзину сайта.';
+        } elseif ( false !== strpos( $template, 'payment.php' ) ) {
+            $description = 'Информация об оплате и получении биопрепаратов INMI для физических и юридических лиц.';
+        } elseif ( false !== strpos( $template, 'how-buing.php' ) ) {
+            $description = 'Пошаговая инструкция по выбору, заказу и покупке биопрепаратов INMI на сайте.';
+        } elseif ( false !== strpos( $template, 'requisites.php' ) ) {
+            $description = 'Юридические и платежные реквизиты INMI для оформления документов и оплаты заказов.';
+        } else {
+            $description = $content ? $content : 'Биопрепараты и микробиологические решения INMI для бытовых, сельскохозяйственных и промышленных задач.';
+        }
+    }
+
+    $description = function_exists( 'wp_html_excerpt' ) ? wp_html_excerpt( trim( preg_replace( '/\s+/', ' ', $description ) ), 160, '...' ) : substr( $description, 0, 160 );
+
+    if ( ! $keywords ) {
+        $base_keywords = [ 'INMI', 'биопрепараты', 'микробиологические препараты' ];
+        if ( $page_title ) {
+            array_unshift( $base_keywords, $page_title );
+        }
+        if ( $is_product_template ) {
+            $base_keywords[] = 'инструкция по применению';
+            $base_keywords[] = 'купить биопрепарат';
+        }
+        $keywords = implode( ', ', array_unique( $base_keywords ) );
+    }
+
+    $canonical = function_exists( 'wp_get_canonical_url' ) ? wp_get_canonical_url() : '';
+    if ( ! $canonical && function_exists( 'get_permalink' ) ) {
+        $canonical = get_permalink();
+    }
+
+    $meta = [
+        'title'       => $title,
+        'description' => $description,
+        'keywords'    => $keywords,
+        'canonical'   => $canonical,
+        'site_name'   => $site_name,
+        'type'        => $is_product_template ? 'product' : 'website',
+    ];
+
+    return $meta;
+}
+
+function inmi_render_seo_meta() {
+    $meta = inmi_get_seo_meta();
+    ?>
+	<meta name="keywords" content="<?php echo esc_attr( $meta['keywords'] ); ?>">
+	<meta name="description" content="<?php echo esc_attr( $meta['description'] ); ?>">
+	<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+	<?php if ( ! empty( $meta['canonical'] ) ) : ?>
+	<link rel="canonical" href="<?php echo esc_url( $meta['canonical'] ); ?>">
+	<?php endif; ?>
+	<meta property="og:locale" content="ru_RU">
+	<meta property="og:type" content="<?php echo esc_attr( $meta['type'] ); ?>">
+	<meta property="og:site_name" content="<?php echo esc_attr( $meta['site_name'] ); ?>">
+	<meta property="og:title" content="<?php echo esc_attr( $meta['title'] ); ?>">
+	<meta property="og:description" content="<?php echo esc_attr( $meta['description'] ); ?>">
+	<?php if ( ! empty( $meta['canonical'] ) ) : ?>
+	<meta property="og:url" content="<?php echo esc_url( $meta['canonical'] ); ?>">
+	<?php endif; ?>
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="<?php echo esc_attr( $meta['title'] ); ?>">
+	<meta name="twitter:description" content="<?php echo esc_attr( $meta['description'] ); ?>">
+	<script type="application/ld+json"><?php echo wp_json_encode( [ '@context' => 'https://schema.org', '@type' => 'WebPage', 'name' => $meta['title'], 'description' => $meta['description'], 'url' => $meta['canonical'] ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?></script>
+    <?php
+}
+
